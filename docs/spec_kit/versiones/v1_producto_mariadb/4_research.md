@@ -1,0 +1,114 @@
+# Investigación y decisiones — Versión 1: producto + MariaDB (PHP puro)
+
+> **Versión 1** · **Lectura opcional** (el porqué de las decisiones del plan,
+> con las alternativas que se evaluaron y descartaron). Complementa a
+> [3_plan.md](3_plan.md); el orden de trabajo está en [8_tasks.md](8_tasks.md).
+
+---
+
+## D1 — PHP puro: sin framework y sin Composer
+
+**Alternativas descartadas:** Slim 4 (micro-framework con routing PSR-7) y
+Laravel (framework completo con ORM).
+**Decisión:** PHP "vanilla" — front controller propio, PDO directo, cero
+dependencias.
+**Por qué:** el objetivo es aprender **PHP y arquitectura**, no un framework.
+Laravel esconde exactamente lo que el curso quiere mostrar (el SQL, el
+enrutamiento, la validación); Slim es razonable pero mete Composer, `vendor/`
+y estándares PSR que compiten por la atención del estudiante. Escribir el
+router de ~60 líneas y la validación a mano ES el contenido. **Precio
+asumido:** características gratis que no tendremos (middleware, DI container,
+docs automáticas) — ninguna es objetivo de la v1.
+
+## D2 — Capas completas desde el día 1 (y no un MVP en un solo archivo)
+
+**Alternativa descartada:** v1 = todo en `index.php` y refactorizar a capas
+después.
+**Decisión:** controlador → servicio → repositorio con interfaces desde v1.
+**Por qué:** el valor de la v1 es el **esqueleto** sobre el que crecen las
+demás versiones sin reescribir. El criterio de aceptación 6 (probar el
+servicio con un repositorio falso, sin MariaDB) **solo es posible** si el
+servicio depende de una `interface` — la prueba objetiva de que las capas
+quedaron bien cortadas. Bonus de PHP: las interfaces son nativas del lenguaje
+(`interface` / `implements`), más explícitas incluso que los Protocol de
+otros lenguajes.
+
+## D3 — Sin fábrica ni selección de motor: un ensamblador de una función
+
+**Alternativa descartada:** escribir de una vez la fábrica multi-motor.
+**Decisión:** `ensamblador.php` con una función que instancia la única
+combinación existente (YAGNI con dirección).
+**Por qué:** una fábrica con un solo producto es código muerto. La interfaz
+`IRepositorioProducto` SÍ se escribe hoy — es la puerta por la que entrará
+MariaDB — pero el mecanismo de selección llega cuando exista algo que
+seleccionar (v3). El examen del principio abierto/cerrado será ese: en v3,
+solo `ensamblador.php` cambia.
+
+## D4 — La BD completa desde la v1 (la API solo toca `producto`)
+
+**Alternativa descartada:** una BD mínima que crece con cada versión.
+**Decisión:** `db/init.sql` crea `bdfacturas` COMPLETA (12 tablas, trigger,
+SPs); la regla es que el código de v1 solo puede nombrar `producto`.
+**Por qué:** los estudiantes ya vieron bases de datos — la BD es
+**infraestructura dada**; lo que se construye por versiones es la API. Evita
+migraciones entre versiones y deja el trigger de facturación esperando a la
+v2. Costo asumido: 11 tablas a la vista que aún no se usan — por eso la regla
+se declara explícita en la spec.
+
+## D5 — Modelo básico + validación en el controlador
+
+**Alternativas descartadas:** una clase validadora aparte (mete un concepto
+extra a la estructura), meter la validación dentro del modelo o del
+servicio, o no validar y dejar que la BD rechace.
+**Decisión:** el modelo `Producto` es una clase **básica** (las 4
+propiedades tipadas — el dato como objeto, nada más), y la validación del
+body vive en el **controlador** como métodos privados: la frontera HTTP
+revisa lo que llega de afuera → 422 con lista de errores ANTES de tocar el
+servicio. La estructura queda en las 4 carpetas canónicas: controladores,
+modelos, servicios, repositorios.
+**Por qué:** en los frameworks con validación integrada la frontera viene
+gratis; en PHP puro **construirla** enseña qué hace realmente una frontera
+de entrada. Validar es trabajo de quien recibe la petición (el controlador),
+y el modelo se mantiene simple para no confundir: modelo = el dato con
+tipos. La validación por verbo materializa la semántica HTTP: el mismo body
+`{"stock": 7}` falla en PUT (le faltan campos) y pasa en PATCH — la
+diferencia queda escrita en código, no en comentarios.
+
+## D6 — PDO con prepared statements (SQL visible)
+
+**Alternativa descartada:** un ORM (Eloquent/Doctrine) o funciones `pg_*`.
+**Decisión:** PDO + `prepare`/`execute` con parámetros nombrados.
+**Por qué:** la constitución exige SQL visible y parametrizado. PDO es el
+estándar del lenguaje, funciona con los tres motores de la ruta (v3/v4 solo
+cambian el DSN y el dialecto) y sus prepared statements son la defensa
+canónica contra inyección SQL. Detalle didáctico: el driver mysql entrega `DECIMAL`
+como string — el repositorio castea al serializar, y ese matiz (cada driver
+serializa distinto) es lección del curso.
+
+## D7 — `php -S` (built-in server) en vez de Apache/nginx
+
+**Alternativa descartada:** `php:8.3-apache` con mod_rewrite y `.htaccess`.
+**Decisión:** el servidor embebido de PHP con `index.php` como router:
+`php -S 0.0.0.0:8022 index.php`.
+**Por qué:** con `php -S … index.php` TODAS las peticiones pasan por el front
+controller sin configurar rewrite — cero archivos de configuración de
+servidor, que no son contenido de la v1. Producción real usaría
+nginx + PHP-FPM — fuera del alcance (documentado). Además, guardar un
+`.php` = refrescar el navegador, porque PHP reinterpreta cada petición
+(ni siquiera existe "reload").
+
+## D8 — XAMPP + PHP 8.3 aparte (la infraestructura sin Docker)
+
+**Alternativas descartadas:** exigir Docker (no está disponible en todas
+las salas del curso) y usar XAMPP también para correr la API (el PHP que
+trae XAMPP es viejo — 8.0 — y el código del curso usa `readonly`, que
+existe desde 8.1).
+**Decisión:** la infraestructura la pone **XAMPP** (MariaDB en el puerto
+3306 y phpMyAdmin en `http://localhost/phpmyadmin`) y la API corre con
+**PHP 8.3 instalado aparte** (en el `PATH`). El arranque son los dos
+comandos del Artículo 4: `.\db\crear_bd.ps1` y `php -S localhost:8022
+index.php`.
+**Por qué:** el espíritu del Artículo 4 (arranque simple y reproducible)
+se mantiene sin contenedores, y el curso sigue siendo PHP 8.3 tal como
+manda el Artículo 2. Quien tenga Docker puede usar la variante principal
+del curso — misma API, misma spec, otra infraestructura.

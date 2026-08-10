@@ -1,0 +1,88 @@
+# Modelo de datos — Versión 1: la BD completa, la API solo usa `producto`
+
+> **Versión 1** · Decisión clave: **la base de datos `bdfacturas` se crea
+> COMPLETA desde el inicio** (las 12 tablas, sus datos de ejemplo, el trigger
+> de totales/stock y los procedimientos almacenados). Usted ya vio bases de
+> datos — la BD no es lo que se construye por versiones: **lo que crece
+> versión a versión es la API**. La v1 solo usa la tabla `producto`; el resto
+> ya está ahí, esperando a las versiones siguientes.
+
+---
+
+## 1. El script de la BD (artefacto de esta versión)
+
+El script completo viene **provisto** en el repositorio: **`db/init.sql`**
+(~1150 líneas: 12 tablas, restricciones, secuencias, datos de ejemplo, trigger
+y SPs en dialecto MySQL/MariaDB). **Se copia tal cual — no se escribe ni se
+genera con IA.** Es infraestructura dada, igual que la imagen de MariaDB.
+
+Vista rápida de lo que crea:
+
+```
+Independientes:  empresa · persona · producto · rol · ruta · usuario
+Con FK:          cliente · vendedor · factura · productosporfactura
+                 rol_usuario · rutarol
+Lógica en BD:    trigger actualizar_totales_y_stock (productosporfactura)
+                 + procedimientos almacenados de facturación y RBAC
+```
+
+## 2. La tabla que la v1 SÍ usa: `producto`
+
+| Columna | Tipo | Restricción | Descripción |
+|---|---|---|---|
+| `codigo` | VARCHAR(10) | **PK** | Identificador legible (PR001…) |
+| `nombre` | VARCHAR(100) | NOT NULL | Nombre del producto |
+| `stock` | INTEGER | NOT NULL | Unidades disponibles |
+| `valorunitario` | NUMERIC | NOT NULL | Precio unitario |
+
+Datos de ejemplo: **8 productos** (PR001 Laptop Lenovo IdeaPad, 17,
+2.500.000 … PR008 Disco Duro Seagate 1TB, 32, 280.000).
+
+**Notas para la API:**
+
+- Los valores no-negativos de stock y valorunitario los garantiza el
+  **la validación del controlador en la API** (la frontera de entrada, con 422).
+- El driver mysql de PDO entrega `DECIMAL` como **string** — el repositorio
+  castea al serializar (`stock → int`, `valorunitario → float`).
+- La tabla tiene una relación entrante
+  (`productosporfactura.fkcodproducto`): eliminar un producto que aparezca en
+  una factura fallará por FK — la API mostrará el 500 con el error del motor
+  (integridad referencial en acción).
+
+## 3. Montar la BD para la v1
+
+La BD vive en el **MariaDB de XAMPP**. Para montarla (una sola vez):
+encienda MySQL en el panel de control de XAMPP y corra el inicializador
+provisto (ver [3_plan.md](3_plan.md) §5):
+
+```powershell
+.\db\crear_bd.ps1      # desde la raíz del proyecto
+```
+
+Conexión PDO para la API (variables de entorno):
+
+```
+# La API (php -S) se conecta al MariaDB de XAMPP (puerto estándar 3306).
+# Estos son los DEFAULTS del ensamblador — solo hay que definir las
+# variables si se quiere apuntar a OTRA BD:
+DB_DSN     = mysql:host=localhost;port=3306;dbname=bdfacturas_mariadb_local
+DB_USUARIO = paradigmas
+DB_CLAVE   = paradigmas123
+```
+
+Verificación: un cliente SQL debe ver **12 tablas** y `SELECT count(*) FROM
+producto` debe dar **8**.
+
+## 4. Qué toca la API en cada versión (la BD no cambia)
+
+| Versión | Tablas que usa la API |
+|---|---|
+| **v1** | `producto` — nada más |
+| v2 | + persona, empresa, cliente, vendedor, factura, productosporfactura (el trigger que ya vive en la BD empieza a trabajar) |
+| v3–v4 | las mismas, contra más motores |
+| v5 | la API genérica puede leer cualquiera de las 12 |
+| v6 | el front las ve a través de las APIs |
+
+**Regla de la v1:** el código solo puede nombrar la tabla `producto`. Que las
+otras 11 existan no es invitación a usarlas — eso es alcance de las versiones
+siguientes.

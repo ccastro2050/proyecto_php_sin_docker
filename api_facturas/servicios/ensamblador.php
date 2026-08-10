@@ -1,0 +1,38 @@
+<?php
+/**
+ * Ensamblador — el ÚNICO lugar del sistema que conoce clases concretas.
+ *
+ * Una sola función, sin arrays de motores ni selección: la v1 tiene UN motor
+ * y el código lo dice (YAGNI con dirección). Cuando la v3 agregue PostgreSQL,
+ * SOLO este archivo se convertirá en la fábrica real — controladores y
+ * servicios no se tocarán: ese será el examen del principio abierto/cerrado.
+ */
+
+// Modo estricto de tipos (ver explicación completa en index.php):
+declare(strict_types=1);
+
+require_once __DIR__ . '/ServicioProducto.php';
+require_once __DIR__ . '/../repositorios/RepositorioProductoMariaDB.php';
+
+// Fíjese en el tipo de retorno: promete LA INTERFAZ (IServicioProducto),
+// no la clase concreta. Quien la llame (index.php) no sabrá qué hay dentro.
+function crearServicioProducto(): IServicioProducto
+{
+    // Aquí — y SOLO aquí — se hace `new` de clases concretas.
+    // La configuración llega por variables de entorno:
+    //   getenv('X')  → lee la variable X del entorno (si alguien la definió)
+    //   ?:           → "si vino vacía o no existe, usa este valor por defecto"
+    // Los defaults apuntan al MariaDB de XAMPP: localhost:3306 (el puerto
+    // estándar de MySQL/MariaDB) y la BD que creó db\crear_bd.ps1.
+    // Para apuntar a OTRA BD (ej. la de su reconstrucción) defina DB_DSN
+    // antes de arrancar: $env:DB_DSN="mysql:host=localhost;port=3306;dbname=bdfacturas_mi_v1"
+    $repositorio = new RepositorioProductoMariaDB(
+        getenv('DB_DSN')     ?: 'mysql:host=localhost;port=3306;dbname=bdfacturas_mariadb_local',  // dsn
+        getenv('DB_USUARIO') ?: 'paradigmas',       // usuario
+        getenv('DB_CLAVE')   ?: 'paradigmas123',    // clave
+    );
+
+    // Se ARMA la cadena de capas: el servicio recibe el repositorio ya
+    // construido (inyección de dependencias hecha a mano, sin frameworks):
+    return new ServicioProducto($repositorio);
+}
