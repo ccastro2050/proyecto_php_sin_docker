@@ -139,7 +139,7 @@ proyecto_php_sin_docker/
 │   ├── GUIA_IA.md               # Cómo reconstruir la versión desde 0 con ayuda de una IA
 │   ├── ENTORNO_LOCAL.md         # XAMPP + php -S: el entorno de esta variante, explicado
 │   ├── PARADIGMA_POO.md         # Material conceptual: POO, SOLID+capas, ACID
-│   ├── SOLID_Y_CAPAS.md         #   y SDD (un .md por tema)
+│   ├── SOLID_CAPAS_PATRONES.md         #   y SDD (un .md por tema)
 │   ├── PRINCIPIOS_ACID.md       #
 │   ├── SDD_SPECKIT.md           #
 │   ├── TUTORIAL_PHPMYADMIN.md   # Tutoriales de administración de la BD, paso a paso
@@ -192,7 +192,7 @@ aceptación (se cierra con tag). Detalle completo:
 | [Colección de Postman](postman/README.md) | Los 13 endpoints de la v1 listos para importar y probar con clics — incluida la pareja PUT=422 vs PATCH=200 |
 | [SDD y Spec Kit](docs/SDD_SPECKIT.md) | La metodología con la que se trabaja este curso: la spec manda sobre el código |
 | [El paradigma P.O.O. en PHP](docs/PARADIGMA_POO.md) | Qué es un paradigma, los 4 pilares, y las `interface` de PHP + la validación como frontera |
-| [SOLID y programación por capas](docs/SOLID_Y_CAPAS.md) | Los 5 principios y las capas — y en qué versión se demuestra cada uno |
+| [SOLID, capas y patrones de diseño](docs/SOLID_CAPAS_PATRONES.md) | Los 5 principios y las capas — y en qué versión se demuestra cada uno |
 | [Principios ACID](docs/PRINCIPIOS_ACID.md) | Las 4 garantías transaccionales, por qué una facturación las exige, y el contraste con BASE |
 | [El entorno local](docs/ENTORNO_LOCAL.md) | XAMPP (MariaDB + phpMyAdmin), el PHP 8.3 aparte y `php -S` — qué es cada pieza y cómo se relacionan |
 | [Tutorial phpMyAdmin](docs/TUTORIAL_PHPMYADMIN.md) | Administrar bdfacturas desde el navegador: estructura, Diseñador, SQL, edición y respaldo — paso a paso con capturas |
