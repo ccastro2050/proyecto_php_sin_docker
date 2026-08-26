@@ -37,7 +37,7 @@ arquitectura** a estudiantes universitarios. Ante cualquier disyuntiva entre
 
 ```
 CAPA 1: FRONT (PHP, :8000)    — solo pinta HTML y llama APIs; NUNCA toca la BD
-CAPA 2: APIs (PHP)            — api_generica :8001 y api_facturas :8022
+CAPA 2: API (PHP)            — api_facturas :8022
 CAPA 3: DATOS                 — PostgreSQL | MariaDB | SQL Server (bdfacturas)
 ```
 
@@ -89,7 +89,7 @@ no se reinicia nunca durante la clase.
 
 | Cosa | Convención |
 |---|---|
-| Puertos públicos | front 8020 · api_generica 8021 · api_facturas **8022** (con `php -S`) |
+| Puertos públicos | front 8020 · · api_facturas **8022** (con `php -S`) |
 | Puertos de BD | MariaDB **3306** (la de XAMPP) · PostgreSQL 5432 y SQL Server 1433 (instalaciones locales de versiones futuras) |
 | phpMyAdmin | `http://localhost/phpmyadmin` (el de XAMPP, con Apache encendido) |
 | Credenciales BD | la API usa `paradigmas` / `paradigmas123`; el administrador de XAMPP es `root` **sin clave** (solo para administrar y para `crear_bd.ps1`) |
